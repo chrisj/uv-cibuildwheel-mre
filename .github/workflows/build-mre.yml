@@ -14,6 +14,11 @@ jobs:
           version: "0.11.7"
           enable-cache: false
 
+      - name: Install uv-managed Python 3.13
+        shell: pwsh
+        run: |
+          uv python install 3.13
+
       - name: Show runner and uv state
         shell: pwsh
         run: |
@@ -103,6 +108,8 @@ jobs:
                       "CIBW_BUILD": "cp312-win_amd64",
                       "CIBW_DEBUG_TRACEBACK": "1",
                       "CIBW_BUILD_VERBOSITY": "1",
+                      "UV_PYTHON": "3.13",
+                      "UV_MANAGED_PYTHON": "1",
                   },
               )
           '@ | Set-Content -Path noxfile.py
@@ -122,6 +129,11 @@ jobs:
           version: "0.11.6"
           enable-cache: false
 
+      - name: Install uv-managed Python 3.13
+        shell: pwsh
+        run: |
+          uv python install 3.13
+
       - name: Show runner and uv state
         shell: pwsh
         run: |
@@ -211,6 +223,8 @@ jobs:
                       "CIBW_BUILD": "cp312-win_amd64",
                       "CIBW_DEBUG_TRACEBACK": "1",
                       "CIBW_BUILD_VERBOSITY": "1",
+                      "UV_PYTHON": "3.13",
+                      "UV_MANAGED_PYTHON": "1",
                   },
               )
           '@ | Set-Content -Path noxfile.py
