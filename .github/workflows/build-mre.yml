@@ -46,6 +46,9 @@ jobs:
           [build-system]
           requires = ["setuptools>=64", "wheel"]
           build-backend = "setuptools.build_meta"
+
+          [dependency-groups]
+          cibuildwheel = ["cibuildwheel>=2.22.0"]
           '@ | Set-Content -Path mre_pkg/pyproject.toml
           @'
           from setuptools import Extension, setup
@@ -89,7 +92,10 @@ jobs:
           CIBW_BUILD: cp312-win_amd64
           CIBW_DEBUG_TRACEBACK: "1"
           CIBW_BUILD_VERBOSITY: "1"
+          CIBW_BEFORE_BUILD: python -c "import threading"
           UV_PYTHON: "3.13"
           UV_MANAGED_PYTHON: "1"
         run: |
-          uvx --from cibuildwheel>=2.22.0 cibuildwheel --output-dir dist mre_pkg
+          Push-Location mre_pkg
+          uv run --only-group cibuildwheel cibuildwheel --output-dir ../dist .
+          Pop-Location
