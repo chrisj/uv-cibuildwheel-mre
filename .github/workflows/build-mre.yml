@@ -1,0 +1,105 @@
+name: Windows uv 0.11.7 build[uv] MRE
+
+on:
+  workflow_dispatch:
+
+jobs:
+  windows-build-uv-0117-mre:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.7"
+          enable-cache: false
+
+      - name: Show runner and uv state
+        shell: pwsh
+        run: |
+          Write-Host "runner.os=$env:RUNNER_OS"
+          uv self version
+          uv run python --version
+          uv python list
+          py -0p
+
+      - name: Create minimal package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force mre_pkg/src/mre_pkg | Out-Null
+          @'
+          [build-system]
+          requires = ["setuptools>=64", "wheel"]
+          build-backend = "setuptools.build_meta"
+
+          [project]
+          name = "mre-pkg"
+          version = "0.0.1"
+          requires-python = ">=3.11"
+          '@ | Set-Content -Path mre_pkg/pyproject.toml
+          @'
+          __all__ = ["hello"]
+
+          def hello() -> str:
+              return "hello"
+          '@ | Set-Content -Path mre_pkg/src/mre_pkg/__init__.py
+
+      - name: Reproduce build[uv] failure for cp312 on Windows
+        shell: pwsh
+        env:
+          CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_BUILD: cp312-win_amd64
+          CIBW_DEBUG_TRACEBACK: "1"
+          CIBW_BUILD_VERBOSITY: "1"
+        run: |
+          uvx --with cibuildwheel cibuildwheel --output-dir dist mre_pkg
+
+  windows-build-uv-0116-mre:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v7
+        with:
+          version: "0.11.6"
+          enable-cache: false
+
+      - name: Show runner and uv state
+        shell: pwsh
+        run: |
+          Write-Host "runner.os=$env:RUNNER_OS"
+          uv self version
+          uv run python --version
+          uv python list
+          py -0p
+
+      - name: Create minimal package
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force mre_pkg/src/mre_pkg | Out-Null
+          @'
+          [build-system]
+          requires = ["setuptools>=64", "wheel"]
+          build-backend = "setuptools.build_meta"
+
+          [project]
+          name = "mre-pkg"
+          version = "0.0.1"
+          requires-python = ">=3.11"
+          '@ | Set-Content -Path mre_pkg/pyproject.toml
+          @'
+          __all__ = ["hello"]
+
+          def hello() -> str:
+              return "hello"
+          '@ | Set-Content -Path mre_pkg/src/mre_pkg/__init__.py
+
+      - name: Verify build[uv] passes for cp312 on Windows
+        shell: pwsh
+        env:
+          CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_BUILD: cp312-win_amd64
+          CIBW_DEBUG_TRACEBACK: "1"
+          CIBW_BUILD_VERBOSITY: "1"
+        run: |
+          uvx --with cibuildwheel cibuildwheel --output-dir dist mre_pkg
