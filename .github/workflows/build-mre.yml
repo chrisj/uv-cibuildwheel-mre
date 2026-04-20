@@ -34,6 +34,9 @@ jobs:
 
           [tool.setuptools_scm]
           fallback_version = "0.0.1"
+
+          [dependency-groups]
+          cibuildwheel = ["cibuildwheel>=2.22.0"]
           '@ | Set-Content -Path mre_pkg/pyproject.toml
           @'
           import numpy
@@ -84,15 +87,16 @@ jobs:
 
           @nox.session(python=False)
           def cibuildwheel(session: nox.Session):
+              session.chdir("mre_pkg")
               session.run(
                   "uv",
                   "run",
-                  "--with",
+                "--only-group",
                   "cibuildwheel",
                   "cibuildwheel",
                   "--output-dir",
-                  "dist",
-                  "mre_pkg",
+                "../dist",
+                ".",
                   *session.posargs,
                   env={
                       "CIBW_BUILD_FRONTEND": "build[uv]",
@@ -138,6 +142,9 @@ jobs:
 
           [tool.setuptools_scm]
           fallback_version = "0.0.1"
+
+          [dependency-groups]
+          cibuildwheel = ["cibuildwheel>=2.22.0"]
           '@ | Set-Content -Path mre_pkg/pyproject.toml
           @'
           import numpy
@@ -188,15 +195,16 @@ jobs:
 
           @nox.session(python=False)
           def cibuildwheel(session: nox.Session):
+              session.chdir("mre_pkg")
               session.run(
                   "uv",
                   "run",
-                  "--with",
+                "--only-group",
                   "cibuildwheel",
                   "cibuildwheel",
                   "--output-dir",
-                  "dist",
-                  "mre_pkg",
+                "../dist",
+                ".",
                   *session.posargs,
                   env={
                       "CIBW_BUILD_FRONTEND": "build[uv]",
