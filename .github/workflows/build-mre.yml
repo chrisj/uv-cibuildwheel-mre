@@ -1,4 +1,4 @@
-name: Windows uv 0.11.7 build[uv] MRE
+name: Windows uv build[uv] MRE
 
 on:
   workflow_dispatch:
@@ -23,26 +23,49 @@ jobs:
           uv python list
           py -0p
 
-      - name: Create minimal package
+      - name: Create minimal extension package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force mre_pkg/src/mre_pkg | Out-Null
+          New-Item -ItemType Directory -Force mre_pkg | Out-Null
           @'
           [build-system]
           requires = ["setuptools>=64", "wheel"]
           build-backend = "setuptools.build_meta"
-
-          [project]
-          name = "mre-pkg"
-          version = "0.0.1"
-          requires-python = ">=3.11"
           '@ | Set-Content -Path mre_pkg/pyproject.toml
           @'
-          __all__ = ["hello"]
+          from setuptools import Extension, setup
 
-          def hello() -> str:
-              return "hello"
-          '@ | Set-Content -Path mre_pkg/src/mre_pkg/__init__.py
+          setup(
+            name="mre-pkg",
+            version="0.0.1",
+            python_requires=">=3.11",
+            ext_modules=[Extension("mre_ext", ["mre_ext.c"])],
+          )
+          '@ | Set-Content -Path mre_pkg/setup.py
+          @'
+          #include <Python.h>
+
+          static PyObject* hello(PyObject* self, PyObject* args) {
+            return PyUnicode_FromString("hello");
+          }
+
+          static PyMethodDef methods[] = {
+            {"hello", hello, METH_NOARGS, "Return a string."},
+            {NULL, NULL, 0, NULL}
+          };
+
+          static struct PyModuleDef module = {
+            PyModuleDef_HEAD_INIT,
+            "mre_ext",
+            NULL,
+            -1,
+            methods
+          };
+
+          PyMODINIT_FUNC PyInit_mre_ext(void) {
+            return PyModule_Create(&module);
+          }
+          '@ | Set-Content -Path mre_pkg/mre_ext.c
 
       - name: Reproduce build[uv] failure for cp312 on Windows
         shell: pwsh
@@ -73,26 +96,49 @@ jobs:
           uv python list
           py -0p
 
-      - name: Create minimal package
+      - name: Create minimal extension package
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force mre_pkg/src/mre_pkg | Out-Null
+          New-Item -ItemType Directory -Force mre_pkg | Out-Null
           @'
           [build-system]
           requires = ["setuptools>=64", "wheel"]
           build-backend = "setuptools.build_meta"
-
-          [project]
-          name = "mre-pkg"
-          version = "0.0.1"
-          requires-python = ">=3.11"
           '@ | Set-Content -Path mre_pkg/pyproject.toml
           @'
-          __all__ = ["hello"]
+          from setuptools import Extension, setup
 
-          def hello() -> str:
-              return "hello"
-          '@ | Set-Content -Path mre_pkg/src/mre_pkg/__init__.py
+          setup(
+            name="mre-pkg",
+            version="0.0.1",
+            python_requires=">=3.11",
+            ext_modules=[Extension("mre_ext", ["mre_ext.c"])],
+          )
+          '@ | Set-Content -Path mre_pkg/setup.py
+          @'
+          #include <Python.h>
+
+          static PyObject* hello(PyObject* self, PyObject* args) {
+            return PyUnicode_FromString("hello");
+          }
+
+          static PyMethodDef methods[] = {
+            {"hello", hello, METH_NOARGS, "Return a string."},
+            {NULL, NULL, 0, NULL}
+          };
+
+          static struct PyModuleDef module = {
+            PyModuleDef_HEAD_INIT,
+            "mre_ext",
+            NULL,
+            -1,
+            methods
+          };
+
+          PyMODINIT_FUNC PyInit_mre_ext(void) {
+            return PyModule_Create(&module);
+          }
+          '@ | Set-Content -Path mre_pkg/mre_ext.c
 
       - name: Verify build[uv] passes for cp312 on Windows
         shell: pwsh
