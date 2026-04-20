@@ -23,7 +23,7 @@ jobs:
           uv python list
           py -0p
 
-      - name: Create minimal extension package
+      - name: Create minimal extension package and nox session
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force mre_pkg | Out-Null
@@ -66,16 +66,37 @@ jobs:
             return PyModule_Create(&module);
           }
           '@ | Set-Content -Path mre_pkg/mre_ext.c
+          @'
+          import nox
 
-      - name: Reproduce build[uv] failure for cp312 on Windows
+          nox.options.error_on_external_run = True
+
+
+          @nox.session(python=False)
+          def cibuildwheel(session: nox.Session):
+              session.run(
+                  "uv",
+                  "run",
+                  "--with",
+                  "cibuildwheel",
+                  "cibuildwheel",
+                  "--output-dir",
+                  "dist",
+                  "mre_pkg",
+                  *session.posargs,
+                  env={
+                      "CIBW_BUILD_FRONTEND": "build[uv]",
+                      "CIBW_BUILD": "cp312-win_amd64",
+                      "CIBW_DEBUG_TRACEBACK": "1",
+                      "CIBW_BUILD_VERBOSITY": "1",
+                  },
+              )
+          '@ | Set-Content -Path noxfile.py
+
+      - name: Reproduce build[uv] failure for cp312 on Windows via nox
         shell: pwsh
-        env:
-          CIBW_BUILD_FRONTEND: build[uv]
-          CIBW_BUILD: cp312-win_amd64
-          CIBW_DEBUG_TRACEBACK: "1"
-          CIBW_BUILD_VERBOSITY: "1"
         run: |
-          uvx --with cibuildwheel cibuildwheel --output-dir dist mre_pkg
+          uvx nox -s cibuildwheel
 
   windows-build-uv-0116-mre:
     runs-on: windows-latest
@@ -96,7 +117,7 @@ jobs:
           uv python list
           py -0p
 
-      - name: Create minimal extension package
+      - name: Create minimal extension package and nox session
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force mre_pkg | Out-Null
@@ -139,13 +160,34 @@ jobs:
             return PyModule_Create(&module);
           }
           '@ | Set-Content -Path mre_pkg/mre_ext.c
+          @'
+          import nox
 
-      - name: Verify build[uv] passes for cp312 on Windows
+          nox.options.error_on_external_run = True
+
+
+          @nox.session(python=False)
+          def cibuildwheel(session: nox.Session):
+              session.run(
+                  "uv",
+                  "run",
+                  "--with",
+                  "cibuildwheel",
+                  "cibuildwheel",
+                  "--output-dir",
+                  "dist",
+                  "mre_pkg",
+                  *session.posargs,
+                  env={
+                      "CIBW_BUILD_FRONTEND": "build[uv]",
+                      "CIBW_BUILD": "cp312-win_amd64",
+                      "CIBW_DEBUG_TRACEBACK": "1",
+                      "CIBW_BUILD_VERBOSITY": "1",
+                  },
+              )
+          '@ | Set-Content -Path noxfile.py
+
+      - name: Verify build[uv] passes for cp312 on Windows via nox
         shell: pwsh
-        env:
-          CIBW_BUILD_FRONTEND: build[uv]
-          CIBW_BUILD: cp312-win_amd64
-          CIBW_DEBUG_TRACEBACK: "1"
-          CIBW_BUILD_VERBOSITY: "1"
         run: |
-          uvx --with cibuildwheel cibuildwheel --output-dir dist mre_pkg
+          uvx nox -s cibuildwheel
