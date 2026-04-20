@@ -86,14 +86,14 @@ jobs:
                   *session.posargs,
                   env={
                       "CIBW_BUILD_FRONTEND": "build[uv]",
-                      "CIBW_BUILD": "cp312-win_amd64",
+                      "CIBW_BUILD": "cp311-win_amd64",
                       "CIBW_DEBUG_TRACEBACK": "1",
                       "CIBW_BUILD_VERBOSITY": "1",
                   },
               )
           '@ | Set-Content -Path noxfile.py
 
-      - name: Reproduce build[uv] failure for cp312 on Windows via nox
+      - name: Reproduce build[uv] failure for cp311 on Windows via nox
         shell: pwsh
         run: |
           uvx nox -s cibuildwheel
@@ -180,14 +180,14 @@ jobs:
                   *session.posargs,
                   env={
                       "CIBW_BUILD_FRONTEND": "build[uv]",
-                      "CIBW_BUILD": "cp312-win_amd64",
+                      "CIBW_BUILD": "cp311-win_amd64",
                       "CIBW_DEBUG_TRACEBACK": "1",
                       "CIBW_BUILD_VERBOSITY": "1",
                   },
               )
           '@ | Set-Content -Path noxfile.py
 
-      - name: Verify build[uv] passes for cp312 on Windows via nox
+      - name: Verify build[uv] passes for cp311 on Windows via nox
         shell: pwsh
         run: |
           uvx nox -s cibuildwheel
