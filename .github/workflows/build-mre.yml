@@ -69,5 +69,5 @@ jobs:
           CIBW_BEFORE_BUILD: python -c "import threading"
         run: |
           Push-Location mre_pkg
-          uv run cibuildwheel --output-dir ../dist .
+          uvx --from cibuildwheel cibuildwheel --output-dir ../dist .
           Pop-Location
