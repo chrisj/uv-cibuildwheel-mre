@@ -29,17 +29,27 @@ jobs:
           New-Item -ItemType Directory -Force mre_pkg | Out-Null
           @'
           [build-system]
-          requires = ["setuptools>=64", "wheel"]
+          requires = ["setuptools>=64", "wheel", "setuptools_scm>=8.1.0", "numpy>=2"]
           build-backend = "setuptools.build_meta"
+
+          [tool.setuptools_scm]
+          fallback_version = "0.0.1"
           '@ | Set-Content -Path mre_pkg/pyproject.toml
           @'
+          import numpy
           from setuptools import Extension, setup
 
           setup(
             name="mre-pkg",
-            version="0.0.1",
+            use_scm_version=True,
             python_requires=">=3.11",
-            ext_modules=[Extension("mre_ext", ["mre_ext.c"])],
+            ext_modules=[
+                Extension(
+                    "mre_ext",
+                    ["mre_ext.c"],
+                    include_dirs=[numpy.get_include()],
+                )
+            ],
           )
           '@ | Set-Content -Path mre_pkg/setup.py
           @'
@@ -86,14 +96,14 @@ jobs:
                   *session.posargs,
                   env={
                       "CIBW_BUILD_FRONTEND": "build[uv]",
-                      "CIBW_BUILD": "cp311-win_amd64",
+                      "CIBW_BUILD": "cp312-win_amd64",
                       "CIBW_DEBUG_TRACEBACK": "1",
                       "CIBW_BUILD_VERBOSITY": "1",
                   },
               )
           '@ | Set-Content -Path noxfile.py
 
-      - name: Reproduce build[uv] failure for cp311 on Windows via nox
+      - name: Reproduce build[uv] failure for cp312 on Windows via nox
         shell: pwsh
         run: |
           uvx nox -s cibuildwheel
@@ -123,17 +133,27 @@ jobs:
           New-Item -ItemType Directory -Force mre_pkg | Out-Null
           @'
           [build-system]
-          requires = ["setuptools>=64", "wheel"]
+          requires = ["setuptools>=64", "wheel", "setuptools_scm>=8.1.0", "numpy>=2"]
           build-backend = "setuptools.build_meta"
+
+          [tool.setuptools_scm]
+          fallback_version = "0.0.1"
           '@ | Set-Content -Path mre_pkg/pyproject.toml
           @'
+          import numpy
           from setuptools import Extension, setup
 
           setup(
             name="mre-pkg",
-            version="0.0.1",
+            use_scm_version=True,
             python_requires=">=3.11",
-            ext_modules=[Extension("mre_ext", ["mre_ext.c"])],
+            ext_modules=[
+                Extension(
+                    "mre_ext",
+                    ["mre_ext.c"],
+                    include_dirs=[numpy.get_include()],
+                )
+            ],
           )
           '@ | Set-Content -Path mre_pkg/setup.py
           @'
@@ -180,14 +200,14 @@ jobs:
                   *session.posargs,
                   env={
                       "CIBW_BUILD_FRONTEND": "build[uv]",
-                      "CIBW_BUILD": "cp311-win_amd64",
+                      "CIBW_BUILD": "cp312-win_amd64",
                       "CIBW_DEBUG_TRACEBACK": "1",
                       "CIBW_BUILD_VERBOSITY": "1",
                   },
               )
           '@ | Set-Content -Path noxfile.py
 
-      - name: Verify build[uv] passes for cp311 on Windows via nox
+      - name: Verify build[uv] passes for cp312 on Windows via nox
         shell: pwsh
         run: |
           uvx nox -s cibuildwheel
