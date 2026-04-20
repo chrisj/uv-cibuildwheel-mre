@@ -4,14 +4,23 @@ on:
   workflow_dispatch:
 
 jobs:
-  windows-build-uv-0117-mre:
+  windows-build-uv-mre:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - uv_version: "0.11.7"
+            outcome: fails
+            continue_on_error: true
+          - uv_version: "0.11.6"
+            outcome: passes
+            continue_on_error: false
+    continue-on-error: ${{ matrix.continue_on_error }}
     steps:
-      - uses: actions/checkout@v4
-
       - uses: astral-sh/setup-uv@v7
         with:
-          version: "0.11.7"
+          version: ${{ matrix.uv_version }}
           enable-cache: false
 
       - name: Install uv-managed Python 3.13
@@ -22,42 +31,30 @@ jobs:
       - name: Show runner and uv state
         shell: pwsh
         run: |
+          Write-Host "expected=${{ matrix.outcome }}"
           Write-Host "runner.os=$env:RUNNER_OS"
           uv self version
           uv run python --version
           uv python list
           py -0p
 
-      - name: Create minimal extension package and nox session
+      - name: Create minimal extension package
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force mre_pkg | Out-Null
           @'
           [build-system]
-          requires = ["setuptools>=64", "wheel", "setuptools_scm>=8.1.0", "numpy>=2"]
+          requires = ["setuptools>=64", "wheel"]
           build-backend = "setuptools.build_meta"
-
-          [tool.setuptools_scm]
-          fallback_version = "0.0.1"
-
-          [dependency-groups]
-          cibuildwheel = ["cibuildwheel>=2.22.0"]
           '@ | Set-Content -Path mre_pkg/pyproject.toml
           @'
-          import numpy
           from setuptools import Extension, setup
 
           setup(
             name="mre-pkg",
-            use_scm_version=True,
+            version="0.0.1",
             python_requires=">=3.11",
-            ext_modules=[
-                Extension(
-                    "mre_ext",
-                    ["mre_ext.c"],
-                    include_dirs=[numpy.get_include()],
-                )
-            ],
+            ext_modules=[Extension("mre_ext", ["mre_ext.c"])],
           )
           '@ | Set-Content -Path mre_pkg/setup.py
           @'
@@ -84,152 +81,15 @@ jobs:
             return PyModule_Create(&module);
           }
           '@ | Set-Content -Path mre_pkg/mre_ext.c
-          @'
-          import nox
 
-          nox.options.error_on_external_run = True
-
-
-          @nox.session(python=False)
-          def cibuildwheel(session: nox.Session):
-              session.chdir("mre_pkg")
-              session.run(
-                  "uv",
-                  "run",
-                "--only-group",
-                  "cibuildwheel",
-                  "cibuildwheel",
-                  "--output-dir",
-                "../dist",
-                ".",
-                  *session.posargs,
-                  env={
-                      "CIBW_BUILD_FRONTEND": "build[uv]",
-                      "CIBW_BUILD": "cp312-win_amd64",
-                      "CIBW_DEBUG_TRACEBACK": "1",
-                      "CIBW_BUILD_VERBOSITY": "1",
-                      "UV_PYTHON": "3.13",
-                      "UV_MANAGED_PYTHON": "1",
-                  },
-              )
-          '@ | Set-Content -Path noxfile.py
-
-      - name: Reproduce build[uv] failure for cp312 on Windows via nox
+      - name: Run cibuildwheel with build[uv]
         shell: pwsh
+        env:
+          CIBW_BUILD_FRONTEND: build[uv]
+          CIBW_BUILD: cp312-win_amd64
+          CIBW_DEBUG_TRACEBACK: "1"
+          CIBW_BUILD_VERBOSITY: "1"
+          UV_PYTHON: "3.13"
+          UV_MANAGED_PYTHON: "1"
         run: |
-          uvx nox -s cibuildwheel
-
-  windows-build-uv-0116-mre:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: astral-sh/setup-uv@v7
-        with:
-          version: "0.11.6"
-          enable-cache: false
-
-      - name: Install uv-managed Python 3.13
-        shell: pwsh
-        run: |
-          uv python install 3.13
-
-      - name: Show runner and uv state
-        shell: pwsh
-        run: |
-          Write-Host "runner.os=$env:RUNNER_OS"
-          uv self version
-          uv run python --version
-          uv python list
-          py -0p
-
-      - name: Create minimal extension package and nox session
-        shell: pwsh
-        run: |
-          New-Item -ItemType Directory -Force mre_pkg | Out-Null
-          @'
-          [build-system]
-          requires = ["setuptools>=64", "wheel", "setuptools_scm>=8.1.0", "numpy>=2"]
-          build-backend = "setuptools.build_meta"
-
-          [tool.setuptools_scm]
-          fallback_version = "0.0.1"
-
-          [dependency-groups]
-          cibuildwheel = ["cibuildwheel>=2.22.0"]
-          '@ | Set-Content -Path mre_pkg/pyproject.toml
-          @'
-          import numpy
-          from setuptools import Extension, setup
-
-          setup(
-            name="mre-pkg",
-            use_scm_version=True,
-            python_requires=">=3.11",
-            ext_modules=[
-                Extension(
-                    "mre_ext",
-                    ["mre_ext.c"],
-                    include_dirs=[numpy.get_include()],
-                )
-            ],
-          )
-          '@ | Set-Content -Path mre_pkg/setup.py
-          @'
-          #include <Python.h>
-
-          static PyObject* hello(PyObject* self, PyObject* args) {
-            return PyUnicode_FromString("hello");
-          }
-
-          static PyMethodDef methods[] = {
-            {"hello", hello, METH_NOARGS, "Return a string."},
-            {NULL, NULL, 0, NULL}
-          };
-
-          static struct PyModuleDef module = {
-            PyModuleDef_HEAD_INIT,
-            "mre_ext",
-            NULL,
-            -1,
-            methods
-          };
-
-          PyMODINIT_FUNC PyInit_mre_ext(void) {
-            return PyModule_Create(&module);
-          }
-          '@ | Set-Content -Path mre_pkg/mre_ext.c
-          @'
-          import nox
-
-          nox.options.error_on_external_run = True
-
-
-          @nox.session(python=False)
-          def cibuildwheel(session: nox.Session):
-              session.chdir("mre_pkg")
-              session.run(
-                  "uv",
-                  "run",
-                "--only-group",
-                  "cibuildwheel",
-                  "cibuildwheel",
-                  "--output-dir",
-                "../dist",
-                ".",
-                  *session.posargs,
-                  env={
-                      "CIBW_BUILD_FRONTEND": "build[uv]",
-                      "CIBW_BUILD": "cp312-win_amd64",
-                      "CIBW_DEBUG_TRACEBACK": "1",
-                      "CIBW_BUILD_VERBOSITY": "1",
-                      "UV_PYTHON": "3.13",
-                      "UV_MANAGED_PYTHON": "1",
-                  },
-              )
-          '@ | Set-Content -Path noxfile.py
-
-      - name: Verify build[uv] passes for cp312 on Windows via nox
-        shell: pwsh
-        run: |
-          uvx nox -s cibuildwheel
+          uvx --from cibuildwheel>=2.22.0 cibuildwheel --output-dir dist mre_pkg
